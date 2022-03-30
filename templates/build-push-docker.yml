@@ -1,0 +1,43 @@
+parameters:
+- name: tags
+  type: string
+- name: buildArguments
+  type: string
+- name: dockerFile
+  type: string
+- name: registry
+  type: string
+- name: repository
+  type: string
+- name: buildContext
+  type: string
+  default: '.'
+
+steps:
+  - pwsh: |
+     $ignore = Join-Path (Split-Path ${{ parameters.dockerFile }} -Parent) .dockerignore
+     if (Test-Path $ignore) {
+       "Copying $ignore to ."
+       Copy-Item $ignore . -Force
+     }
+    displayName: Copy .dockerignore if it exists
+
+  - task: Docker@2
+    displayName: Build ${{ parameters.repository }} Image
+    inputs:
+      containerRegistry: ${{ parameters.registry }}
+      repository: ${{ parameters.repository }}
+      command: build
+      Dockerfile: ${{ parameters.dockerFile }}
+      buildContext: ${{ parameters.buildContext }}
+      tags: ${{ parameters.tags }}
+      arguments: ${{ parameters.buildArguments }}
+
+  - ${{ if in(variables['Build.SourceBranchName'],'development','master','production') }}:
+    - task: Docker@2
+      displayName: Push ${{ parameters.repository }} Image to ${{ parameters.registry }}
+      inputs:
+        containerRegistry: ${{ parameters.registry }}
+        repository: ${{ parameters.repository }}
+        command: push
+        tags: ${{ parameters.tags }}

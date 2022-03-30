@@ -1,0 +1,35 @@
+parameters:
+- name: successMessage
+  type: string
+  default: ''
+- name: failureMessage
+  type: string
+  default: ''
+- name: channel
+  type: string
+  default: '#dev'
+- name: token
+  type: string
+  default: $(SLACK_API_TOKEN)
+- name: dryRun
+  type: boolean
+  default: false
+
+steps:
+  - ${{ if not(parameters.dryRun) }}:
+    - ${{ if ne(length(parameters.successMessage),0) }}:
+      - task: kasunkodagoda.slack-notification.slack-notification-task.SlackNotification@1
+        displayName: 'Post Success Slack Notification'
+        inputs:
+          Channel: ${{ parameters.channel }}
+          Message: ${{ parameters.successMessage }}
+          SlackApiToken: ${{ parameters.token }}
+
+    - ${{ if ne(length(parameters.failureMessage),0) }}:
+      - task: kasunkodagoda.slack-notification.slack-notification-task.SlackNotification@1
+        displayName: 'Post Failure Slack Notification'
+        inputs:
+          Channel: ${{ parameters.channel }}
+          Message: ${{ parameters.failureMessage }}
+          SlackApiToken: ${{ parameters.token }}
+        condition: failed()

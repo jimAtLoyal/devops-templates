@@ -1,0 +1,10 @@
+steps:
+  - pwsh: |
+      $PSVersionTable
+      Write-Host "##[group]Files"
+      gci $env:AGENT_BUILDDIRECTORY -R | Select FullName | ft -a -wrap
+      Write-Host "##[endgroup]"
+      Write-Host "##[group]Environment"
+      gci env: | ft -a -wrap
+      Write-Host "##[endgroup]"
+    displayName: Dump Version, Dir, and Env
