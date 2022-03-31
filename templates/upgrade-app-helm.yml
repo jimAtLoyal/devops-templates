@@ -1,0 +1,80 @@
+parameters:
+- name: rootDirectory
+  type: string
+- name: releaseName
+  type: string
+- name: valueFile
+  type: string
+- name: vaultAzureSubscription
+  type: string
+- name: dryRun
+  type: boolean
+  default: false
+- name: inlineVariables
+  type: string
+  default: ''
+- name: keyVaultName
+  type: string
+  default: 'loyal-infra-kv'
+- name: azureSubscription
+  type: string
+- name: azureResourceGroup
+  type: string
+  default: $(azResourceGroup)
+- name: kubernetesCluster
+  type: string
+  default: $(k8sCluster)
+- name: chartUri
+  type: string
+  default: oci://loyal.azurecr.io/helm/dev/loyal-app
+- name: chartVersion
+  type: string
+  default: '0.0.1'
+
+steps:
+- task: AzureKeyVault@2
+  displayName: 'Azure Key Vault: ${{ parameters.keyVaultName }} on ${{ parameters.vaultAzureSubscription }}'
+  inputs:
+    azureSubscription: ${{ parameters.vaultAzureSubscription }}
+    KeyVaultName: '${{ parameters.keyVaultName }}'
+    SecretsFilter: 'loyal-acr-helm-sp-appid,loyal-acr-helm-sp-password'
+  condition: ${{ ne(variables.chartPulled,'True') }}
+
+- pwsh: |
+    if ($env:chartPulled -ne 'True') {
+      helm registry login loyal.azurecr.io --username $(loyal-acr-helm-sp-appid) --password $env:helmPw
+      helm pull ${{ parameters.chartUri }} --version ${{ parameters.chartVersion }}
+      "##vso[task.setvariable variable=chartPulled]True"
+    } else {
+      "Chart already pulled"
+    }
+  displayName: 'Pull Helm Chart'
+  env:
+    helmPw: $(loyal-acr-helm-sp-password)
+
+- task: qetza.replacetokens.replacetokens-task.replacetokens@3
+  displayName: 'Replace tokens in **/*.yaml'
+  inputs:
+    rootDirectory: ${{ parameters.rootDirectory }}
+    targetFiles: '**/*.yaml => $(Agent.TempDirectory)/*.yaml'
+    inlineVariables: ${{ parameters.inlineVariables }}
+
+- ${{ if eq(variables.chartPulled,'True') }}:
+  template: /templates/dump-environment.yml@templates
+
+- task: HelmDeploy@0
+  displayName: 'helm upgrade ${{ parameters.releaseName }}'
+  inputs:
+    azureSubscription: ${{ parameters.azureSubscription }}
+    azureResourceGroup: ${{ parameters.azureResourceGroup }}
+    kubernetesCluster: ${{ parameters.kubernetesCluster }}
+    useClusterAdmin: true
+    command: upgrade
+    chartType: FilePath
+    chartPath: 'loyal-app-${{ parameters.chartVersion }}.tgz'
+    releaseName: ${{ parameters.releaseName }}
+    valueFile: '$(Agent.TempDirectory)/${{ parameters.valueFile }}'
+    resetValues: true
+    ${{ if parameters.dryRun }}:
+      arguments: '--dry-run'
+

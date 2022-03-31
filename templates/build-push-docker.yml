@@ -1,17 +1,26 @@
 parameters:
 - name: tags
   type: string
+  displayName: Image tags to pass to Docker
 - name: buildArguments
   type: string
+  displayName: Any additional arguments for docker build
 - name: dockerFile
   type: string
+  displayName: Docker repository
 - name: registry
   type: string
+  displayName: Container registry service connection
 - name: repository
   type: string
+  displayName: Docker repository
 - name: buildContext
   type: string
   default: '.'
+  displayName: Docker context folder
+- name: forcePush
+  displayName: For testing, push even if not on a main branch
+  type: boolean
 
 steps:
   - pwsh: |
@@ -33,7 +42,7 @@ steps:
       tags: ${{ parameters.tags }}
       arguments: ${{ parameters.buildArguments }}
 
-  - ${{ if in(variables['Build.SourceBranchName'],'development','master','production') }}:
+  - ${{ if or(in(variables['Build.SourceBranchName'],'development','master','production'),parameters.forcePush) }}:
     - task: Docker@2
       displayName: Push ${{ parameters.repository }} Image to ${{ parameters.registry }}
       inputs:
