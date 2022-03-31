@@ -2,18 +2,23 @@ parameters:
 - name: successMessage
   type: string
   default: ''
+  displayName: Message to display on success (if empty no message)
 - name: failureMessage
   type: string
   default: ''
+  displayName: Message to display on failure (if empty no message)
 - name: channel
   type: string
   default: '#dev'
+  displayName: Slack channel
 - name: token
   type: string
   default: $(SLACK_API_TOKEN)
+  displayName: Slack api token
 - name: dryRun
   type: boolean
   default: false
+  displayName: If true does not send any messages.
 
 steps:
   - ${{ if not(parameters.dryRun) }}:

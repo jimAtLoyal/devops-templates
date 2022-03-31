@@ -1,35 +1,46 @@
 parameters:
 - name: rootDirectory
   type: string
+  displayName: Root directory of helm files
 - name: releaseName
   type: string
+  displayName: Name of the helm release
 - name: valueFile
   type: string
+  displayName: Name value yaml file in rootDirectory
 - name: vaultAzureSubscription
   type: string
+  displayName: Subscription for getting Azure Vault
 - name: dryRun
   type: boolean
   default: false
+  displayName: If true just does a helm dry-run
 - name: inlineVariables
   type: string
   default: ''
+  displayName: Any inlineVariables for the replacetokens task
 - name: keyVaultName
   type: string
   default: 'loyal-infra-kv'
 - name: azureSubscription
   type: string
+  displayName: Subscription for helm call
 - name: azureResourceGroup
   type: string
   default: $(azResourceGroup)
+  displayName: Resource group for the helm call
 - name: kubernetesCluster
   type: string
   default: $(k8sCluster)
+  displayName: Kubernetes cluster for deployment
 - name: chartUri
   type: string
   default: oci://loyal.azurecr.io/helm/dev/loyal-app
+  displayName: URI for pulling the chart, defaults to dev
 - name: chartVersion
   type: string
   default: '0.0.1'
+  displayName: Version of chart to pull
 
 steps:
 - task: AzureKeyVault@2
